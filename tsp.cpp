@@ -19,10 +19,28 @@ int random_int(int n) {
 }
 
 /**
-* Calculates the distance between two vertices
+* Calculates the distance between two coordinate points.
 */
 int calculate_distance(pair<double, double> v1, pair<double, double> v2) {
     return round(sqrt(pow(v1.first - v2.first, 2) + pow(v1.second - v2.second, 2)));
+}
+
+/**
+* Calculates the distance between two vertices.
+*/
+int calculate_distance(int v1, int v2) {
+    return calculate_distance(vertices[v1], vertices[v2]);
+}
+
+/**
+* Calculates the distance of a given route.
+*/
+int calculate_tour_distance(vector<int> route) {
+    int distance = 0;
+    for(int i = 0; i < route.size()-1; ++i) {
+        distance += calculate_distance(i, i+1);
+    }
+    return distance;
 }
 
 /**
