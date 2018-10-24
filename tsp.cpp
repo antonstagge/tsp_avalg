@@ -76,8 +76,41 @@ vector<int> random_route(int n) {
 /**
 * Uses Lin-Kernighan local optimization to find a good TSP route.
 */
-vector<int> lin_kernighan(vector<int> route) {
-    return route;
+vector<int> lin_kernighan(int n) {
+    one:
+        vector<int> route = random_route(n);
+    two:
+        for(int i = 0; i < n; ++i) {
+            checked_vertices[i] = false;
+        }
+        checked_edges.clear();
+
+        int i = 1;
+        int t1 = random_int(n);
+        checked_vertices[t1] = true;
+    three:
+        int t2;
+        for(int i = 0; i < n; ++i) {
+            if(route[i] == t1) {
+                int flip = random_int(2);
+                t2 = flip == 0 ? route[(i-1) % n] : route[(i+1) % n];
+            }
+        }
+        pair<int, int> x1 = make_pair(t1, t2);
+        set_checked_edge(t1, t2, true);
+    four:
+
+    five:
+        i += 1;
+    six:
+    seven:
+    eight:
+    nine:
+    ten:
+    eleven:
+    twelve:
+    thirteen:
+        return route;
 }
 
 int main() {
@@ -90,11 +123,7 @@ int main() {
         vertices[i] = make_pair(x, y);
         checked_vertices[i] = false;
     }
-    vector<int> route = random_route(n);
-
-    for(int i = 0; i < n; ++i) {
-        route = lin_kernighan(route);
-    }
+    vector<int> route = lin_kernighan(n);
 
     for (int i = 0; i < n; ++i) {
         cout << route[i] << endl;
