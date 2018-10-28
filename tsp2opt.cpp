@@ -33,10 +33,10 @@ int calculate_distance(int v1, int v2) {
 /**
 * Calculates the distance of a given route.
 */
-int calculate_tour_distance(vector<int> route) {
+int calculate_tour_distance(const vector<int>& route) {
     int distance = 0;
     for(int i = 0; i < route.size()-1; ++i) {
-        distance += calculate_distance(i, i+1);
+        distance += calculate_distance(route[i], route[i+1]);
     }
     return distance;
 }
@@ -53,7 +53,7 @@ vector<int> random_route(int n) {
     return route;
 }
 
-vector<int> two_opt_swap(vector<int>& route, int i, int k) {
+vector<int> two_opt_swap(const vector<int>& route, int i, int k) {
     vector<int> start(route.begin(), route.begin() + i);
     vector<int> flip(route.begin() + i, route.begin() + k + 1);
     vector<int> end(route.begin() + k + 1, route.end());
@@ -66,11 +66,11 @@ vector<int> two_opt_swap(vector<int>& route, int i, int k) {
 void two_opt(int n, vector<int>& route) {
     int best_distance = calculate_tour_distance(route);
     for(int i = 0; i < n-1; ++i) {
-        for(int k = i+1; k < n; ++k) {
+        for(int k = i+2; k < n; ++k) {
             vector<int> new_route = two_opt_swap(route, i, k);
-            int new_distance = calculate_tour_distance(route);
+            int new_distance = calculate_tour_distance(new_route);
             if(new_distance < best_distance) {
-                route = new_route;
+                route = move(new_route);
                 return;
             }
         }
