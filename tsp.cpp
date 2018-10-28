@@ -95,6 +95,19 @@ vector<int> random_route(int n) {
     return route;
 }
 
+void stepTwo();
+void stepThree();
+void stepFour();
+void stepFive();
+void stepSix();
+void stepSeven();
+void stepEight();
+void stepNine();
+void stepTen();
+void stepEleven();
+void stepTwelve();
+void stepThirteen();
+
 void stepTwo(int n, vector<int>& route) {
     int i = 1;
 
@@ -165,8 +178,37 @@ void stepFour(int n, vector<int>& route, int i) {
     stepFive(n, route, i);
 }
 
-stepFive(int n, vector<int>& route, int i) {
+void stepFive(int n, vector<int>& route, int i) {
     stepSix(n, route, i+1);
+}
+
+void stepSix(int n, vector<int>& route, int i) {
+    for(int j = 0; j < n; ++j) {
+        if(route[j] == vertex_list[2*i-1]) {
+            if(get_checked_edge_x(make_pair(vertex_list[2*i-1], route[(j-1) % n])) &&
+                get_checked_edge_x(make_pair(vertex_list[2*i-1], route[(j+1) % n]))) {
+                return;
+            }
+        }
+    }
+
+    while(true) {
+        do {
+            for(int j = 0; j < n; ++j) {
+                if(route[j] == vertex_list[2*i-1]) {
+                    int flip = random_int(2);
+                    vertex_list[2*i] = flip == 0 ? route[(j-1) % n] : route[(j+1) % n]; //t2i
+                    break;
+                }
+            }
+            edge_list_x[i] = make_pair(vertex_list[2*i-1], vertex_list[2*i]); //x1
+        } while(checked_edges_x[edge_list_x[i]]);
+
+
+
+    }
+
+    stepFour(n, route, i);
 }
 
 /**
