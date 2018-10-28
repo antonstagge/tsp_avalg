@@ -9,7 +9,11 @@ using namespace std;
 
 map<int, pair<double, double>> vertices;
 map<int, bool> checked_vertices;
-map<pair<int, int>, bool> checked_edges;
+map<pair<int, int>, bool> checked_edges_x;
+map<pair<int, int>, bool> checked_edges_y;
+vector<int> vertex_list;
+vector<pair<int, int>> edge_list_x;
+vector<pair<int, int>> edge_list_y;
 
 /**
 * Returns a random int.
@@ -46,19 +50,37 @@ int calculate_tour_distance(vector<int> route) {
 /**
 * Gets whether a given edge has been checked or not.
 */
-bool get_checked_edge(int v1, int v2) {
-    if(checked_edges.find(make_pair(v1, v2)) == checked_edges.end()) {
+bool get_checked_edge_x(int v1, int v2) {
+    if(checked_edges_x.find(make_pair(v1, v2)) == checked_edges_x.end()) {
         return false;
     }
-    return checked_edges[make_pair(v1, v2)];
+    return checked_edges_x[make_pair(v1, v2)];
 }
 
 /**
 * Sets whether a given edge has been checked or not.
 */
-void set_checked_edge(int v1, int v2, bool value) {
-    checked_edges[make_pair(v1, v2)] = value;
-    checked_edges[make_pair(v2, v1)] = value;
+void set_checked_edge_y(int v1, int v2, bool value) {
+    checked_edges_y[make_pair(v1, v2)] = value;
+    checked_edges_y[make_pair(v2, v1)] = value;
+}
+
+/**
+* Gets whether a given edge has been checked or not.
+*/
+bool get_checked_edge_y(int v1, int v2) {
+    if(checked_edges_y.find(make_pair(v1, v2)) == checked_edges_y.end()) {
+        return false;
+    }
+    return checked_edges_y[make_pair(v1, v2)];
+}
+
+/**
+* Sets whether a given edge has been checked or not.
+*/
+void set_checked_edge_x(int v1, int v2, bool value) {
+    checked_edges_x[make_pair(v1, v2)] = value;
+    checked_edges_x[make_pair(v2, v1)] = value;
 }
 
 /**
@@ -73,44 +95,104 @@ vector<int> random_route(int n) {
     return route;
 }
 
+void stepTwo(int n, vector<int>& route) {
+    int i = 1;
+
+    bool tried_all = true;
+    for(int j = 0; j < n; j++) {
+        if(!checked_vertices[j]) {
+            tried_all = false;
+            break;
+        }
+    }
+    if(tried_all) {
+        return;
+    }
+
+    do {
+        vertex_list[i] = random_int(n); //t1
+    } while(checked_vertices[vertex_list[i]]);
+    checked_vertices[vertex_list[i]] = true;
+
+    stepThree(n, route, i);
+}
+
+void stepThree(int n, vector<int>& route, int i) {
+    for(int j = 0; j < n; ++j) {
+        if(route[j] == vertex_list[i]) {
+            if(get_checked_edge_x(make_pair(vertex_list[i], route[(j-1) % n])) &&
+                get_checked_edge_x(make_pair(vertex_list[i], route[(j+1) % n]))) {
+                return;
+            }
+        }
+    }
+
+    do {
+        for(int j = 0; j < n; ++j) {
+            if(route[j] == vertex_list[i]) {
+                int flip = random_int(2);
+                vertex_list[i+1] = flip == 0 ? route[(j-1) % n] : route[(j+1) % n]; //t2
+                break;
+            }
+        }
+        edge_list_x[i] = make_pair(vertex_list[i], vertex_list[i+1]); //x1
+    } while(checked_edges_x[edge_list_x[i]]);
+    set_checked_edge_x(vertex_list[i], vertex_list[i+1], true);
+
+    stepFour(n, route, i);
+}
+
+void stepFour(int n, vector<int>& route, int i) {
+    int edge_node1;
+    int edge_node2;
+    for(int j = 0; j < n; ++j) {
+        if(route[j] == vertex_list[i+1]) {
+            edge_node1 = route[(j-1) % n];
+            edge_node2 = route[(j+1) % n];
+            break;
+        }
+    }
+
+    do {
+        do {
+            vertex_list[i+2] = random_int(n);
+        } while(vertex_list[i+2] == edge_node1 || vertex_list[i+2] == edge_node2);
+
+        edge_list_y[i] = make_pair(vertex_list[i+1], vertex_list[i+2]);
+    } while(checked_edges_y[edge_list_y[i]]);
+    set_checked_edge_y(vertex_list[i+1], vertex_list[i+2], true);
+
+    stepFive(n, route, i);
+}
+
+stepFive(int n, vector<int>& route, int i) {
+    stepSix(n, route, i+1);
+}
+
 /**
 * Uses Lin-Kernighan local optimization to find a good TSP route.
 */
 vector<int> lin_kernighan(int n) {
-    one:
-        vector<int> route = random_route(n);
-    two:
-        for(int i = 0; i < n; ++i) {
-            checked_vertices[i] = false;
-        }
-        checked_edges.clear();
+    //Step 1
+    vector<int> route = random_route(n);
 
-        int i = 1;
-        int t1 = random_int(n);
-        checked_vertices[t1] = true;
-    three:
-        int t2;
-        for(int i = 0; i < n; ++i) {
-            if(route[i] == t1) {
-                int flip = random_int(2);
-                t2 = flip == 0 ? route[(i-1) % n] : route[(i+1) % n];
-            }
-        }
-        pair<int, int> x1 = make_pair(t1, t2);
-        set_checked_edge(t1, t2, true);
-    four:
+    //Make sure all collections used for storing info are cleared
+    checked_edges_x.clear();
+    checked_edges_y.clear();
+    for(int i = 0; i < n; ++i) {
+        checked_vertices[i] = false;
+    }
 
-    five:
-        i += 1;
-    six:
-    seven:
-    eight:
-    nine:
-    ten:
-    eleven:
-    twelve:
-    thirteen:
-        return route;
+    //Algorithm is one indexed
+    checked_edges_x.push_back(-1);
+    checked_edges_y.push_back(-1);
+    vertex_list.push_back(-1);
+    edge_list_x.push_back(make_pair(-1, -1));
+    edge_list_y.push_back(make_pair(-1, -1));
+
+    //Step 2
+    stepTwo(n, route);
+    return route;
 }
 
 int main() {
