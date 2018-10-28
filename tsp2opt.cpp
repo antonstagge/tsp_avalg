@@ -8,6 +8,7 @@
 using namespace std;
 
 map<int, pair<double, double>> vertices;
+vector<vector<int>> distances;
 
 /**
 * Returns a random int.
@@ -27,7 +28,7 @@ int calculate_distance(pair<double, double> v1, pair<double, double> v2) {
 * Calculates the distance between two vertices.
 */
 int calculate_distance(int v1, int v2) {
-    return calculate_distance(vertices[v1], vertices[v2]);
+    return distances[v1][v2];
 }
 
 /**
@@ -38,6 +39,7 @@ int calculate_tour_distance(const vector<int>& route) {
     for(int i = 0; i < route.size()-1; ++i) {
         distance += calculate_distance(route[i], route[i+1]);
     }
+    distance += calculate_distance(route[route.size()-1], route[0]);
     return distance;
 }
 
@@ -65,7 +67,7 @@ vector<int> two_opt_swap(const vector<int>& route, int i, int k) {
 
 void two_opt(int n, vector<int>& route) {
     int best_distance = calculate_tour_distance(route);
-    for(int i = 0; i < n-1; ++i) {
+    for(int i = 0; i < n-2; ++i) {
         for(int k = i+2; k < n; ++k) {
             vector<int> new_route = two_opt_swap(route, i, k);
             int new_distance = calculate_tour_distance(new_route);
@@ -85,9 +87,17 @@ int main() {
         double x, y;
         cin >> x >> y;
         vertices[i] = make_pair(x, y);
+        distances.push_back(vector<int>(n, -1));
     }
+
+    for(int i = 0; i < n; ++i) {
+        for(int j = 0; j < n; ++j) {
+            distances[i][j] = calculate_distance(vertices[i], vertices[j]);
+        }
+    }
+
     vector<int> route = random_route(n);
-    for(int i = 0; i < 1000; i++) {
+    for(int i = 0; i < 500; ++i) {
         two_opt(n, route);
     }
 
