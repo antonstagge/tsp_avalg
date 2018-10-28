@@ -55,6 +55,27 @@ vector<int> random_route(int n) {
     return route;
 }
 
+vector<int> greedy_route(int n) {
+    vector<int> route(n);
+    bool used[n];
+    for(int i = 0; i < n; ++i) {
+        used[i] = false;
+    }
+    used[0] = true;
+    route[0] = 0;
+    for(int i = 1; i < n; ++i) {
+        int best = -1;
+        for(int j = 1; j < n; ++j) {
+            if(!used[j] && (best == -1 || (calculate_distance(route[i-1], j) < calculate_distance(route[i-1], best)))) {
+                best = j;
+            }
+        }
+        route[i] = best;
+        used[best] = true;
+    }
+    return route;
+}
+
 vector<int> two_opt_swap(const vector<int>& route, int i, int k) {
     vector<int> start(route.begin(), route.begin() + i);
     vector<int> flip(route.begin() + i, route.begin() + k + 1);
@@ -98,8 +119,8 @@ int main() {
         }
     }
 
-    vector<int> route = random_route(n);
-    for(int i = 0; i < 3750; ++i) {
+    vector<int> route = greedy_route(n);
+    for(int i = 0; i < 1000; ++i) {
         two_opt(n, route);
     }
 
