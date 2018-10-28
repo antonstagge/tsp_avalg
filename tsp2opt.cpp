@@ -7,6 +7,10 @@
 #include <algorithm>
 using namespace std;
 
+#ifndef ITERATIONS
+#define ITERATIONS 1000
+#endif
+
 map<int, pair<double, double>> vertices;
 vector<vector<int>> distances;
 
@@ -120,7 +124,7 @@ int main() {
     }
 
     vector<int> route = greedy_route(n);
-    for(int i = 0; i < 1000; ++i) {
+    for(int i = 0; i < ITERATIONS; ++i) {
         two_opt(n, route);
     }
 
