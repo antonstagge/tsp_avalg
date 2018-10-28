@@ -69,10 +69,12 @@ void two_opt(int n, vector<int>& route) {
     int best_distance = calculate_tour_distance(route);
     for(int i = 0; i < n-2; ++i) {
         for(int k = i+2; k < n; ++k) {
-            vector<int> new_route = two_opt_swap(route, i, k);
-            int new_distance = calculate_tour_distance(new_route);
-            if(new_distance < best_distance) {
-                route = move(new_route);
+            int prev_first_dist = calculate_distance(route[(i-1) % n], route[i]);
+            int prev_second_dist = calculate_distance(route[k], route[(k+1) % n]);
+            int new_first_dist = calculate_distance(route[(i-1) % n], route[k]);
+            int new_second_dist = calculate_distance(route[i], route[(k+1) % n]);
+            if(new_first_dist + new_second_dist < prev_first_dist + prev_second_dist) {
+                reverse(route.begin() + i, route.begin() + k + 1);
                 return;
             }
         }
@@ -97,7 +99,7 @@ int main() {
     }
 
     vector<int> route = random_route(n);
-    for(int i = 0; i < 500; ++i) {
+    for(int i = 0; i < 3750; ++i) {
         two_opt(n, route);
     }
 
