@@ -91,7 +91,6 @@ vector<int> two_opt_swap(const vector<int>& route, int i, int k) {
 }
 
 void two_opt(int n, vector<int>& route) {
-    int best_distance = calculate_tour_distance(route);
     for(int i = 0; i < n-2; ++i) {
         for(int k = i+2; k < n; ++k) {
             int prev_first_dist = calculate_distance(route[(i-1) % n], route[i]);
