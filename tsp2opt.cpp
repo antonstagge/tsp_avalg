@@ -31,74 +31,56 @@ int calculate_distance(pair<double, double> v1, pair<double, double> v2) {
 /**
 * Calculates the distance between two vertices.
 */
-int calculate_distance(int v1, int v2) {
+int get_distance(int v1, int v2) {
     return distances[v1][v2];
 }
 
 /**
-* Calculates the distance of a given route.
+* Returns a greedy route given the number of vertices
 */
-int calculate_tour_distance(const vector<int>& route) {
-    int distance = 0;
-    for(int i = 0; i < route.size()-1; ++i) {
-        distance += calculate_distance(route[i], route[i+1]);
-    }
-    distance += calculate_distance(route[route.size()-1], route[0]);
-    return distance;
-}
-
-/**
-* Returns a random route given the number of vertices
-*/
-vector<int> random_route(int n) {
-    vector<int> route(n);
-    for (int i = 0; i < n; ++i) {
-        route[i] = i;
-    }
-    random_shuffle(route.begin(), route.end(), random_int);
-    return route;
-}
-
-vector<int> greedy_route(int n) {
-    vector<int> route(n);
+vector<pair<int, int>> greedy_route(int n) {
+    vector<int> node_route(n);
     bool used[n];
     for(int i = 0; i < n; ++i) {
         used[i] = false;
     }
     used[0] = true;
-    route[0] = 0;
+    node_route[0] = 0;
     for(int i = 1; i < n; ++i) {
         int best = -1;
         for(int j = 1; j < n; ++j) {
-            if(!used[j] && (best == -1 || (calculate_distance(route[i-1], j) < calculate_distance(route[i-1], best)))) {
+            if(!used[j] && (best == -1 || (get_distance(node_route[i-1], j) < get_distance(node_route[i-1], best)))) {
                 best = j;
             }
         }
-        route[i] = best;
+        node_route[i] = best;
         used[best] = true;
     }
+    vector<pair<int, int>> route(n);
+    for(int i = 0; i < n-1; ++i) {
+        route[i] = make_pair(node_route[i], node_route[i+1]);
+    }
+    route[n-1] = make_pair(node_route[n-1], node_route[0]);
     return route;
 }
 
-vector<int> two_opt_swap(const vector<int>& route, int i, int k) {
-    vector<int> start(route.begin(), route.begin() + i);
-    vector<int> flip(route.begin() + i, route.begin() + k + 1);
-    vector<int> end(route.begin() + k + 1, route.end());
-    reverse(flip.begin(), flip.end());
-    start.insert(start.end(), flip.begin(), flip.end());
-    start.insert(start.end(), end.begin(), end.end());
-    return start;
-}
-
-void two_opt(int n, vector<int>& route) {
+void two_opt(int n, vector<pair<int, int>>& route) {
     for(int i = 0; i < n-2; ++i) {
         for(int k = i+2; k < n; ++k) {
-            int prev_first_dist = calculate_distance(route[(i-1) % n], route[i]);
-            int prev_second_dist = calculate_distance(route[k], route[(k+1) % n]);
-            int new_first_dist = calculate_distance(route[(i-1) % n], route[k]);
-            int new_second_dist = calculate_distance(route[i], route[(k+1) % n]);
+            int prev_first_dist = get_distance(route[i].first, route[i].second);
+            int prev_second_dist = get_distance(route[k].first, route[k].second);
+            int new_first_dist = get_distance(route[i].first, route[k].first);
+            int new_second_dist = get_distance(route[i].second, route[k].second);
             if(new_first_dist + new_second_dist < prev_first_dist + prev_second_dist) {
-                reverse(route.begin() + i, route.begin() + k + 1);
+                int temp = route[i].second;
+                route[i].second = route[k].first;
+                route[k].first = temp;
+                reverse(route.begin() + i+1, route.begin() + k);
+                for(int j = i+1; j < k; ++j) {
+                    int t = route[j].first;
+                    route[j].first = route[j].second;
+                    route[j].second = t;
+                }
                 return;
             }
         }
@@ -122,12 +104,12 @@ int main() {
         }
     }
 
-    vector<int> route = greedy_route(n);
+    vector<pair<int, int>> route = greedy_route(n);
     for(int i = 0; i < ITERATIONS; ++i) {
         two_opt(n, route);
     }
 
     for (int i = 0; i < n; ++i) {
-        cout << route[i] << endl;
+        cout << route[i].first << endl;
     }
 }
