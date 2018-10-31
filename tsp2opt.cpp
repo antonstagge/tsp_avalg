@@ -1,6 +1,7 @@
 #include <iostream>
 #include <map>
 #include <cmath>
+#include <climits>
 #include <vector>
 #include <stdlib.h>
 #include <time.h>
@@ -9,13 +10,12 @@
 using namespace std;
 
 #ifndef ITERATIONS
-#define ITERATIONS 25000
+#define ITERATIONS 205000
 #endif
 
 map<int, pair<double, double>> vertices;
 vector<vector<int>> constant_distances;
 vector<vector<pair<int, int>>> distances;
-int cutoff = 50;
 
 /**
 * Returns a random int.
@@ -38,16 +38,17 @@ int calculate_distance(pair<double, double> v1, pair<double, double> v2) {
 /**
 * Calculates the distance of a given route.
 */
-int calculate_tour_distance(const vector<int>& route) {
+int calculate_tour_distance(const vector<pair<int,int>>& route) {
     int distance = 0;
-    for(int i = 0; i < route.size()-1; ++i) {
-        distance += constant_distances[route[i]][route[i+1]];
+    for(int i = 0; i < route.size(); ++i) {
+        distance += constant_distances[route[i].first][route[i].second];
     }
-    distance += constant_distances[route[route.size()-1]][route[0]];
     return distance;
 }
 
-
+/**
+ * Get the nearest neighbour to each node to build up a route.
+ */
 vector<pair<int,int>> greedy_route(int n) {
     vector<int> node_route(n);
     bool used[n];
@@ -75,40 +76,7 @@ vector<pair<int,int>> greedy_route(int n) {
     return route;
 }
 
-int findIndexOf(vector<int>& route, int n, int v) {
-    for (int i = 0; i < n; ++i) {
-        if (route[i] == v) return i;
-    }
-    return -1;
-}
-
-void reverse(vector<int>& route, int t1, int t3) {
-    int first_index = 0;
-    int second_index = 0;
-    int first_found = false;
-    bool inc = false;
-    for(int i = 0; i < route.size(); ++i) {
-        if(!first_found) {
-            if(route[i] == t1 || route[i] == t3) {
-                first_index = i;
-                first_found = true;
-                if (route[i] == t1) inc = true;
-            }
-        } else {
-            if(route[i] == t1 || route[i] == t3) {
-                second_index = i;
-            }
-        }
-    }
-    if (inc) {
-        first_index += 1;
-    } else {
-        second_index += 1;
-    }
-    reverse(route.begin() + first_index, route.begin() + second_index);
-}
-
-void new_reverse(vector<pair<int,int>>& route, int i, int k) {
+void reverse(vector<pair<int,int>>& route, int i, int k) {
     // make 1-4 and 2-3
     int temp = route[i].second;
     route[i].second = route[k].first;
@@ -133,15 +101,12 @@ void calc_rev_route(vector<pair<int,int>>& route, vector<pair<int,int>>& rev_rou
     }
 }
 
-int two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_route, double anneal) {
+int two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_route) {
     for(int i = 0; i < n; ++i) {
         int t1 = route[i].first;
         int t2 = route[i].second;
         int d_12 = constant_distances[t1][t2];
-        int count = 0;
         for(auto& t3_pair : distances[t2]) {
-            if (count >= cutoff) break;
-            count++;
             int t3 = t3_pair.first;
             int d_23 = t3_pair.second;
 
@@ -153,11 +118,9 @@ int two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_rout
             int d_34 = constant_distances[t3][t4];
             int d_14 = constant_distances[t1][t4];
             if (d_14 + d_23 >= d_34 + d_12) {
-                if (!(random_double() < anneal)) {
-                    continue;
-                }
+                continue;
             }
-            new_reverse(route, min(i,k), max(i,k));
+            reverse(route, min(i,k), max(i,k));
             calc_rev_route(route, rev_route);
             return 0;
         }
@@ -167,6 +130,22 @@ int two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_rout
 
 bool sortFunction (pair<int,int> x,pair<int,int> y) { 
     return (x.second < y.second);
+}
+
+void random_change(vector<pair<int,int>>& route, int n) {
+    int done = 0;
+    while (done != 2 && n >= 3) {
+        int edge_1 = random_int(n);
+        int edge_2 = random_int(n);
+        if (edge_1 == edge_2) continue;
+        int t1 = route[edge_1].first;
+        int t2 = route[edge_1].second;
+        int t4 = route[edge_2].first;
+        int t3 = route[edge_2].second;
+        if (t3 == route[(edge_1+1) % n].second || t3 == t1) continue;
+        reverse(route, min(edge_1, edge_2), max(edge_1, edge_2));
+        done += 1;
+    }
 }
 
 int main() {
@@ -200,17 +179,29 @@ int main() {
     vector<pair<int,int>> route = greedy_route(n);
     vector<pair<int,int>> rev_route = vector<pair<int,int>>(n, make_pair(-1, -1));
     calc_rev_route(route, rev_route);
-    double anneal = 0.8;
+
     int unchanged = 0;
+    int minima = INT_MAX;
+    vector<pair<int,int>> mini_route = route;
+
     for(int i = 0; i < ITERATIONS; ++i) {
-        unchanged += two_opt(n, route, rev_route, anneal);
-        anneal *= 0.995;
-        if (i == 0.9*ITERATIONS) {
-            anneal = 0.0;
+        unchanged += two_opt(n, route, rev_route);
+
+        if (unchanged == 1) {
+            unchanged = 0;
+            int total_cost = calculate_tour_distance(route);
+            if (total_cost < minima) {
+                minima = total_cost;
+                mini_route = route;
+            } else {
+                route = mini_route;
+            }
+            random_change(route, n);
+            calc_rev_route(route, rev_route);
         }
     }
 
     for (int i = 0; i < n; ++i) {
-        cout << route[i].first << endl;
+        cout << mini_route[i].first << endl;
     }
 }
