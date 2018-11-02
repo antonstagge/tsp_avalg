@@ -24,10 +24,6 @@ int random_int(int n) {
     return rand() % n;
 }
 
-double random_double() {
-    return (double)random_int(999998) / 999999;
-}
-
 /**
 * Calculates the distance between two coordinate points.
 */
@@ -76,6 +72,9 @@ vector<pair<int,int>> greedy_route(int n) {
     return route;
 }
 
+/**
+* Reverses part of the route to accommodate for a 2-OPT swap.
+*/
 void reverse(vector<pair<int,int>>& route, int i, int k) {
     // make 1-4 and 2-3
     int temp = route[i].second;
@@ -91,6 +90,9 @@ void reverse(vector<pair<int,int>>& route, int i, int k) {
     }
 }
 
+/**
+* Calculates the indexes of each route edge, for easier lookup in 2-OPT.
+*/
 void calc_rev_route(vector<pair<int,int>>& route, vector<pair<int,int>>& rev_route) {
     for (int i = 0; i < route.size(); ++i) {
         int from = route[i].first;
@@ -101,7 +103,10 @@ void calc_rev_route(vector<pair<int,int>>& route, vector<pair<int,int>>& rev_rou
     }
 }
 
-int two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_route) {
+/**
+* Finds swaps of edges that lowers the distance of the route.
+*/
+bool two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_route) {
     for(int i = 0; i < n; ++i) {
         int t1 = route[i].first;
         int t2 = route[i].second;
@@ -112,7 +117,7 @@ int two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_rout
 
             if (d_23 >= d_12) break;
             if (t3 == route[(i+1) % n].second || t3 == t1) continue;
-            
+
             int k = rev_route[t3].second;
             int t4 = route[k].first;
             int d_34 = constant_distances[t3][t4];
@@ -122,16 +127,22 @@ int two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_rout
             }
             reverse(route, min(i,k), max(i,k));
             calc_rev_route(route, rev_route);
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
-bool sortFunction (pair<int,int> x,pair<int,int> y) { 
+/**
+* Internal sort function to sort pairs on their distances.
+*/
+bool sortFunction (pair<int,int> x,pair<int,int> y) {
     return (x.second < y.second);
 }
 
+/**
+* Randomly swaps two compatible edges in the route, two times.
+*/
 void random_change(vector<pair<int,int>>& route, int n) {
     int done = 0;
     while (done != 2 && n >= 3) {
@@ -180,15 +191,13 @@ int main() {
     vector<pair<int,int>> rev_route = vector<pair<int,int>>(n, make_pair(-1, -1));
     calc_rev_route(route, rev_route);
 
-    int unchanged = 0;
+    bool unchanged = true;
     int minima = INT_MAX;
     vector<pair<int,int>> mini_route = route;
 
     for(int i = 0; i < ITERATIONS; ++i) {
-        unchanged += two_opt(n, route, rev_route);
-
-        if (unchanged == 1) {
-            unchanged = 0;
+        unchanged = two_opt(n, route, rev_route);
+        if (unchanged) {
             int total_cost = calculate_tour_distance(route);
             if (total_cost < minima) {
                 minima = total_cost;
