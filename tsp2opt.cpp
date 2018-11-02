@@ -1,18 +1,21 @@
 #include <iostream>
 #include <map>
 #include <cmath>
+#include <climits>
 #include <vector>
 #include <stdlib.h>
 #include <time.h>
 #include <algorithm>
+#include <random>
 using namespace std;
 
 #ifndef ITERATIONS
-#define ITERATIONS 1000
+#define ITERATIONS 205000
 #endif
 
 map<int, pair<double, double>> vertices;
-vector<vector<int>> distances;
+vector<vector<int>> constant_distances;
+vector<vector<pair<int, int>>> distances;
 
 /**
 * Returns a random int.
@@ -29,16 +32,20 @@ int calculate_distance(pair<double, double> v1, pair<double, double> v2) {
 }
 
 /**
-* Calculates the distance between two vertices.
+* Calculates the distance of a given route.
 */
-int get_distance(int v1, int v2) {
-    return distances[v1][v2];
+int calculate_tour_distance(const vector<pair<int,int>>& route) {
+    int distance = 0;
+    for(int i = 0; i < route.size(); ++i) {
+        distance += constant_distances[route[i].first][route[i].second];
+    }
+    return distance;
 }
 
 /**
-* Returns a greedy route given the number of vertices
-*/
-vector<pair<int, int>> greedy_route(int n) {
+ * Get the nearest neighbour to each node to build up a route.
+ */
+vector<pair<int,int>> greedy_route(int n) {
     vector<int> node_route(n);
     bool used[n];
     for(int i = 0; i < n; ++i) {
@@ -49,41 +56,106 @@ vector<pair<int, int>> greedy_route(int n) {
     for(int i = 1; i < n; ++i) {
         int best = -1;
         for(int j = 1; j < n; ++j) {
-            if(!used[j] && (best == -1 || (get_distance(node_route[i-1], j) < get_distance(node_route[i-1], best)))) {
+            if(!used[j] && (best == -1 || (constant_distances[node_route[i-1]][j] < constant_distances[node_route[i-1]][best]))) {
                 best = j;
             }
         }
         node_route[i] = best;
         used[best] = true;
     }
-    vector<pair<int, int>> route(n);
-    for(int i = 0; i < n-1; ++i) {
+
+    vector<pair<int,int>> route(n);
+    for (int i = 0; i < n-1; ++i) {
         route[i] = make_pair(node_route[i], node_route[i+1]);
     }
     route[n-1] = make_pair(node_route[n-1], node_route[0]);
     return route;
 }
 
-void two_opt(int n, vector<pair<int, int>>& route) {
-    for(int i = 0; i < n-2; ++i) {
-        for(int k = i+2; k < n; ++k) {
-            int prev_first_dist = get_distance(route[i].first, route[i].second);
-            int prev_second_dist = get_distance(route[k].first, route[k].second);
-            int new_first_dist = get_distance(route[i].first, route[k].first);
-            int new_second_dist = get_distance(route[i].second, route[k].second);
-            if(new_first_dist + new_second_dist < prev_first_dist + prev_second_dist) {
-                int temp = route[i].second;
-                route[i].second = route[k].first;
-                route[k].first = temp;
-                reverse(route.begin() + i+1, route.begin() + k);
-                for(int j = i+1; j < k; ++j) {
-                    int t = route[j].first;
-                    route[j].first = route[j].second;
-                    route[j].second = t;
-                }
-                return;
+/**
+* Reverses part of the route to accommodate for a 2-OPT swap.
+*/
+void reverse(vector<pair<int,int>>& route, int i, int k) {
+    // make 1-4 and 2-3
+    int temp = route[i].second;
+    route[i].second = route[k].first;
+    route[k].first = temp;
+    // flip order
+    reverse(route.begin() + i + 1, route.begin() + k);
+    // flip internally
+    for (int j = i+1; j < k; ++j) {
+        temp = route[j].first;
+        route[j].first = route[j].second;
+        route[j].second = temp;
+    }
+}
+
+/**
+* Calculates the indexes of each route edge, for easier lookup in 2-OPT.
+*/
+void calc_rev_route(vector<pair<int,int>>& route, vector<pair<int,int>>& rev_route) {
+    for (int i = 0; i < route.size(); ++i) {
+        int from = route[i].first;
+        int to = route[i].second;
+
+        rev_route[from].first = i;
+        rev_route[to].second = i;
+    }
+}
+
+/**
+* Finds swaps of edges that lowers the distance of the route.
+*/
+bool two_opt(int n, vector<pair<int,int>>& route, vector<pair<int,int>>& rev_route) {
+    for(int i = 0; i < n; ++i) {
+        int t1 = route[i].first;
+        int t2 = route[i].second;
+        int d_12 = constant_distances[t1][t2];
+        for(auto& t3_pair : distances[t2]) {
+            int t3 = t3_pair.first;
+            int d_23 = t3_pair.second;
+
+            if (d_23 >= d_12) break;
+            if (t3 == route[(i+1) % n].second || t3 == t1) continue;
+
+            int k = rev_route[t3].second;
+            int t4 = route[k].first;
+            int d_34 = constant_distances[t3][t4];
+            int d_14 = constant_distances[t1][t4];
+            if (d_14 + d_23 >= d_34 + d_12) {
+                continue;
             }
+            reverse(route, min(i,k), max(i,k));
+            calc_rev_route(route, rev_route);
+            return false;
         }
+    }
+    return true;
+}
+
+/**
+* Internal sort function to sort pairs on their distances.
+*/
+bool sortFunction (pair<int,int> x,pair<int,int> y) {
+    return (x.second < y.second);
+}
+
+/**
+* Randomly swaps two compatible edges in the route, two times.
+*/
+void random_change(vector<pair<int,int>>& route, int n) {
+    int done = 0;
+    while (done != 2 && n >= 3) {
+        int edge_1 = random_int(n);
+        int edge_2 = random_int(n);
+        if (edge_1 == edge_2) continue;
+        int t1 = route[edge_1].first;
+        int t2 = route[edge_1].second;
+        int t4 = route[edge_2].first;
+        int t3 = route[edge_2].second;
+        if (t3 == route[(edge_1+1) % n].second || t3 == t1) continue;
+        reverse(route, min(edge_1, edge_2), max(edge_1, edge_2));
+        done += 1;
     }
 }
 
@@ -95,21 +167,50 @@ int main() {
         double x, y;
         cin >> x >> y;
         vertices[i] = make_pair(x, y);
-        distances.push_back(vector<int>(n, -1));
+        constant_distances.push_back(vector<int>(n, -1));
+        distances.push_back(vector<pair<int,int>>());
     }
 
     for(int i = 0; i < n; ++i) {
         for(int j = 0; j < n; ++j) {
-            distances[i][j] = calculate_distance(vertices[i], vertices[j]);
+            if (i != j) {
+                int dist = calculate_distance(vertices[i], vertices[j]);
+                constant_distances[i][j] = dist;
+                distances[i].push_back(make_pair(j, dist));
+            } else {
+                constant_distances[i][j] = 0;
+            }
         }
     }
 
-    vector<pair<int, int>> route = greedy_route(n);
+    for(int i = 0; i < n; ++i) {
+        sort(distances[i].begin(), distances[i].end(), sortFunction);
+    }
+
+    vector<pair<int,int>> route = greedy_route(n);
+    vector<pair<int,int>> rev_route = vector<pair<int,int>>(n, make_pair(-1, -1));
+    calc_rev_route(route, rev_route);
+
+    bool unchanged = true;
+    int minima = INT_MAX;
+    vector<pair<int,int>> mini_route = route;
+
     for(int i = 0; i < ITERATIONS; ++i) {
-        two_opt(n, route);
+        unchanged = two_opt(n, route, rev_route);
+        if (unchanged) {
+            int total_cost = calculate_tour_distance(route);
+            if (total_cost < minima) {
+                minima = total_cost;
+                mini_route = route;
+            } else {
+                route = mini_route;
+            }
+            random_change(route, n);
+            calc_rev_route(route, rev_route);
+        }
     }
 
     for (int i = 0; i < n; ++i) {
-        cout << route[i].first << endl;
+        cout << mini_route[i].first << endl;
     }
 }
